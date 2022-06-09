@@ -2,7 +2,7 @@
 
 A simple utility for macOS to load json data from stdin or a file and render a nice interactive treeview to explore it.
 
-[GPLv3 license](License.txt)
+[MIT license](License.txt)
 
 ![screenshot](screenshot.png)
 
