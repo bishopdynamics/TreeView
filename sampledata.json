@@ -1,0 +1,15 @@
+{
+    "i_am_the_first_key": "foobar",
+    "thisone_isa_number": 25,
+    "el_object": {
+        "name": "pedro",
+        "occupation": "astronaut",
+        "isHuman": true,
+        "tools": [
+            "hammer",
+            "screwdriver",
+            "oxygen_tank",
+            "phd"
+        ]
+    }
+}
