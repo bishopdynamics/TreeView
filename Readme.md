@@ -22,7 +22,7 @@ There are three ways to use it from terminal:
 * use a file selection dialog: `/Applications/TreeView.app/Contents/MacOS/TreeView`
 
 
-
+## Symlink
 I like to throw a symlink my `~/bin/`
 ```bash
 ln -s /Applications/TreeView.app/Contents/MacOS/TreeView ~/bin/treeview
@@ -32,6 +32,9 @@ treeview sampledata.json
 
 # stdin
 cat sampledata.json |treeview
+
+# stdin alternate syntax
+treeview < sampledata.json
 ```
 
 ## STDIN Race Condition
@@ -41,7 +44,7 @@ Let's say you run a script which takes a few seconds before it spits out json to
 
 ```bash
 # this script takes a few seconds before it prints a json string
-python3 get-lots-of-data.py | treeview
+python3 get-lots-of-data.py |treeview
 ```
 
 No problem! At first, the app will not find anything in stdin, so the filedialog will appear, 
