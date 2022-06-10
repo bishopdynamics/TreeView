@@ -30,8 +30,8 @@ if __name__ == '__main__':
 
     # First - figure out what file we are loading data from, and populate "input_data"
     try:
-        b_has_stdin = select.select([sys.stdin, ], [], [], 0.0)[0]  # check if any data in stdin
         if not args['file']:
+            b_has_stdin = select.select([sys.stdin, ], [], [], 0.0)[0]  # check if any data in stdin
             if b_has_stdin:
                 # we have data at stdin, lets try to load it
                 str_stdin = ''
@@ -47,14 +47,26 @@ if __name__ == '__main__':
                 input_file_str = tkinter.filedialog.askopenfilename(
                     title='Select data-file.json', filetypes=(("JSON files", "*.json"),))
                 # note: sys.executable only works when it is compiled, because it resolves to the binary
+                
                 if input_file_str:
+                    # user selected a file
                     print('TreeView: re-execing with file: %s', input_file_str)
-                    new_process = subprocess.Popen(
-                        [sys.executable, input_file_str])
+                    new_process = subprocess.Popen([sys.executable, input_file_str])
                     new_process.wait()
+                    sys.exit(0)  # we are done here
                 else:
-                    print('TreeView: no input file selected!')
-                sys.exit(0)  # we are done here
+                    # user must have hit Cancel, because no file was selected, lets check if we have late stdin
+                    b_has_stdin = select.select([sys.stdin, ], [], [], 0.0)[0]  # check again if any data in stdin, late (while dialog was open)
+                    if b_has_stdin:
+                        # we NOW have data at stdin, lets try to load it by re-execing ourself with it
+                        print('TreeView: re-execing with late stdin')
+                        subprocess.Popen([sys.executable], stdin=sys.stdin)
+                        print('TreeView: parent process exited.')
+                        sys.exit(0)  # we are done here
+                    else:
+                        # no file selected (must have hit Cancel), and nothing from stdin
+                        print('TreeView: no input file selected!')
+                        sys.exit(0)  # we are done here
 
         else:
             input_file_str = args['file']

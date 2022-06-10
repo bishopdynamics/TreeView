@@ -34,7 +34,19 @@ treeview sampledata.json
 cat sampledata.json |treeview
 ```
 
-for testing, you can build & run it all at once with `./run.sh sampledata.json`
+## STDIN Race Condition
+What if I have a race condition with my stdin? 
+
+Let's say you run a script which takes a second before it spits out json to stdout, and you pipe that into `treeview`.
+
+No problem! The filedialog will appear (because stdin wasnt there on time), 
+just wait a few seconds to let your script finish, then hit "Cancel" button.
+
+After you hit "Cancel" the app will check stdin again, and if it finds data it will re-exec itself with that data to stdin.
+
+## Testing
+
+For testing, you can build & run it all at once with `./run.sh sampledata.json`
 
 ## Linux and other Unix-like systems
 
