@@ -39,16 +39,21 @@ if __name__ == '__main__':
                     str_stdin += line
                 input_data = json.loads(str_stdin)
                 input_file_str = '(from stdin)'
-                print('loaded data from stdin')
+                print('TreeView: loaded data from stdin')
             else:
                 # no data in stdin
                 # if no --file or -f argument given, and no stdin, then lets try a popup dialog, then re-execute ourselves WITH the --file argument!
+                print('no stdin or filename, showing filedialog')
                 input_file_str = tkinter.filedialog.askopenfilename(
                     title='Select data-file.json', filetypes=(("JSON files", "*.json"),))
                 # note: sys.executable only works when it is compiled, because it resolves to the binary
-                new_process = subprocess.Popen(
-                    [sys.executable, input_file_str])
-                new_process.wait()
+                if input_file_str:
+                    print('TreeView: re-execing with file: %s', input_file_str)
+                    new_process = subprocess.Popen(
+                        [sys.executable, input_file_str])
+                    new_process.wait()
+                else:
+                    print('TreeView: no input file selected!')
                 sys.exit(0)  # we are done here
 
         else:
@@ -77,4 +82,4 @@ if __name__ == '__main__':
     except Exception as ex:
         print('exception: %s', ex)
 
-    print('done.')
+    print('TreeView: Exited.')
