@@ -827,7 +827,7 @@ def show_object(this_object, object_name, show_units=True, sort_keys=False):
             new_obj = str(this_object).splitlines()
     finally:
         # ok, now lets throw up a dialog with the object
-        DialogTreeview('Debugging', summary='File: %s' % object_name, width=800,
+        DialogTreeview('TreeView', summary='File: %s' % object_name, width=800,
                        height=500, resizable=True, focus_force=True, data=new_obj, show_units=show_units, sort_keys=sort_keys)
 
 
