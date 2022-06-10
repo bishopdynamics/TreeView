@@ -37,9 +37,14 @@ cat sampledata.json |treeview
 ## STDIN Race Condition
 What if I have a race condition with my stdin? 
 
-Let's say you run a script which takes a second before it spits out json to stdout, and you pipe that into `treeview`.
+Let's say you run a script which takes a few seconds before it spits out json to stdout, and you pipe that into `treeview`.
 
-No problem! The filedialog will appear (because stdin wasnt there on time), 
+```bash
+# this script takes a few seconds before it prints a json string
+python3 get-lots-of-data.py | treeview
+```
+
+No problem! At first, the app will not find anything in stdin, so the filedialog will appear, 
 just wait a few seconds to let your script finish, then hit "Cancel" button.
 
 After you hit "Cancel" the app will check stdin again, and if it finds data it will re-exec itself with that data to stdin.
