@@ -33,7 +33,7 @@ if __name__ == '__main__':
         if not args['file']:
             b_has_stdin = select.select([sys.stdin, ], [], [], 0.0)[0]  # check if any data in stdin
             if b_has_stdin:
-                # we have data at stdin, lets try to load it
+                # we have data at stdin, lets see if its empty
                 str_stdin = ''
                 for line in stdin:
                     str_stdin += line
@@ -50,7 +50,6 @@ if __name__ == '__main__':
                 input_file_str = tkinter.filedialog.askopenfilename(
                     title='Select data-file.json', filetypes=(("JSON files", "*.json"),))
                 # note: sys.executable only works when it is compiled, because it resolves to the binary
-
                 if input_file_str:
                     # user selected a file
                     print('TreeView: re-execing with file: %s', input_file_str)
