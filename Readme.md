@@ -8,7 +8,10 @@ A simple utility for macOS to load json data from stdin or a file and render a n
 
 ## Build & Install
 
-build it with: `./build-app.sh`, then find `TreeView.app` in `./dist/` 
+This was developed on macOS 12/13 using `Python 3.10.4` with tk installed via brew: `brew install python-tk`. 
+If you do not install tk via brew, you will have a bad time.
+
+Build the app with: `./build-app.sh`, then find `TreeView.app` in `./dist/` 
 
 Drag `TreeView.app` into your Applications folder.
 

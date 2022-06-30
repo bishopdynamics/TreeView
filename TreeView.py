@@ -24,7 +24,7 @@ input_file = None
 
 if __name__ == '__main__':
     # parse args
-    parser = argparse.ArgumentParser(description='Description of your program')
+    parser = argparse.ArgumentParser(description='TreeView - A simple utility for macOS to load csv data from stdin or a file and render a nice interactive tableview to explore it')
     parser.add_argument('file', nargs='?', help='file-with-data.json')
     args = vars(parser.parse_args())
 
@@ -47,7 +47,7 @@ if __name__ == '__main__':
                 input_file_str = tkinter.filedialog.askopenfilename(
                     title='Select data-file.json', filetypes=(("JSON files", "*.json"),))
                 # note: sys.executable only works when it is compiled, because it resolves to the binary
-                
+
                 if input_file_str:
                     # user selected a file
                     print('TreeView: re-execing with file: %s', input_file_str)
