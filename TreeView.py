@@ -37,6 +37,9 @@ if __name__ == '__main__':
                 str_stdin = ''
                 for line in stdin:
                     str_stdin += line
+                if str_stdin.strip() == '':
+                    b_has_stdin = False
+            if b_has_stdin:
                 input_data = json.loads(str_stdin)
                 input_file_str = '(from stdin)'
                 print('TreeView: loaded data from stdin')
@@ -57,6 +60,13 @@ if __name__ == '__main__':
                 else:
                     # user must have hit Cancel, because no file was selected, lets check if we have late stdin
                     b_has_stdin = select.select([sys.stdin, ], [], [], 0.0)[0]  # check again if any data in stdin, late (while dialog was open)
+                    if b_has_stdin:
+                        # we have data at stdin, lets try to load it
+                        str_stdin = ''
+                        for line in stdin:
+                            str_stdin += line
+                        if str_stdin.strip() == '':
+                            b_has_stdin = False
                     if b_has_stdin:
                         # we NOW have data at stdin, lets try to load it by re-execing ourself with it
                         print('TreeView: re-execing with late stdin')
