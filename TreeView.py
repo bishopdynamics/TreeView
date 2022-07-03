@@ -12,95 +12,89 @@ import select
 import sys
 import tkinter
 import tkinter.filedialog
-import subprocess
 
 from sys import stdin
 
 from Mod_TKUtil import show_object
 
-input_data = {}
-input_file_str = ''
-input_file = None
+# print some extra information if True
+DEBUG_MODE = False
+
+
+
+def check_stdin():
+    """ check stdin for data, return it or None
+    """
+    data = None
+    has_data = select.select([sys.stdin, ], [], [], 0.0)[0]  # check if any data in stdin
+    if has_data:
+        # we have data at stdin, lets see if its empty
+        data = ''
+        for line in stdin:
+            data += line
+        if data.strip() == '':
+            data = None
+    return data
+
+def read_file(filepath):
+    # read a file and return its data
+    print(f'Reading data from file: {filepath}')
+    filepath_absolute = pathlib.Path(filepath).resolve()
+    file_data = None
+    if filepath_absolute.is_file():
+        # TODO detect json lines, and load as list of dicts
+        with open(filepath_absolute, 'r', encoding='utf-8') as ifhan:
+            file_data = json.load(ifhan)
+    else:
+        raise FileNotFoundError
+    return file_data
 
 if __name__ == '__main__':
     # parse args
-    parser = argparse.ArgumentParser(description='TreeView - A simple utility for macOS to load csv data from stdin or a file and render a nice interactive tableview to explore it')
+    parser = argparse.ArgumentParser(description='TreeView - A simple utility for macOS to load json data from stdin or a file and render a nice interactive treeview to explore it')
     parser.add_argument('file', nargs='?', help='file-with-data.json')
-    args = vars(parser.parse_args())
-
-    # First - figure out what file we are loading data from, and populate "input_data"
     try:
+        input_data = None
+        input_file_str = None
+        input_file = None
+        args = vars(parser.parse_args())
+        # if there is no file argument, first we check stdin
         if not args['file']:
-            b_has_stdin = select.select([sys.stdin, ], [], [], 0.0)[0]  # check if any data in stdin
-            if b_has_stdin:
-                # we have data at stdin, lets see if its empty
-                str_stdin = ''
-                for line in stdin:
-                    str_stdin += line
-                if str_stdin.strip() == '':
-                    b_has_stdin = False
-            if b_has_stdin:
-                input_data = json.loads(str_stdin)
+            # no file argument, check stdin
+            data_from_stdin = check_stdin()
+            if data_from_stdin:
+                input_data = json.loads(data_from_stdin)
                 input_file_str = '(from stdin)'
-                print('TreeView: loaded data from stdin')
+                print('Loaded data from stdin')
+        # if we still dont have input_data:
+        if not args['file'] and not input_data:
+            # no data in stdin and no file
+            # if no argument given, and no stdin, then lets try a popup dialog to pick a file
+            print('no stdin or filename, showing filedialog')
+            input_file_str = tkinter.filedialog.askopenfilename(title='Select data-file.json', filetypes=(("JSON files", "*.json"),))
+            if input_file_str:
+                # user picked a file
+                input_data = read_file(input_file_str)
             else:
-                # no data in stdin
-                # if no --file or -f argument given, and no stdin, then lets try a popup dialog, then re-execute ourselves WITH the --file argument!
-                print('no stdin or filename, showing filedialog')
-                input_file_str = tkinter.filedialog.askopenfilename(
-                    title='Select data-file.json', filetypes=(("JSON files", "*.json"),))
-                # note: sys.executable only works when it is compiled, because it resolves to the binary
-                if input_file_str:
-                    # user selected a file
-                    print('TreeView: re-execing with file: %s', input_file_str)
-                    new_process = subprocess.Popen([sys.executable, input_file_str])
-                    new_process.wait()
-                    sys.exit(0)  # we are done here
+                # user must have hit Cancel, because no file was selected, lets check if we have late stdin
+                data_from_stdin = check_stdin()
+                if data_from_stdin:
+                    # we NOW have data at stdin, lets try to load it
+                    input_data = json.loads(data_from_stdin)
+                    input_file_str = '(from stdin)'
+                    print('No data file selected, but found late data on stdin')
                 else:
-                    # user must have hit Cancel, because no file was selected, lets check if we have late stdin
-                    b_has_stdin = select.select([sys.stdin, ], [], [], 0.0)[0]  # check again if any data in stdin, late (while dialog was open)
-                    if b_has_stdin:
-                        # we have data at stdin, lets try to load it
-                        str_stdin = ''
-                        for line in stdin:
-                            str_stdin += line
-                        if str_stdin.strip() == '':
-                            b_has_stdin = False
-                    if b_has_stdin:
-                        # we NOW have data at stdin, lets try to load it by re-execing ourself with it
-                        print('TreeView: re-execing with late stdin')
-                        subprocess.Popen([sys.executable], stdin=sys.stdin)
-                        print('TreeView: parent process exited.')
-                        sys.exit(0)  # we are done here
-                    else:
-                        # no file selected (must have hit Cancel), and nothing from stdin
-                        print('TreeView: no input file selected!')
-                        sys.exit(0)  # we are done here
-
-        else:
+                    # no file selected (must have hit Cancel), and nothing from stdin
+                    print('No data file selected!')
+                    sys.exit(0)  # we are done here
+        if args['file']:
+            # have a file arg, so ignore stdin
             input_file_str = args['file']
-            # normalize to absolute path
-            input_file = pathlib.Path(input_file_str).resolve()
-            input_file_str = str(input_file)
-            print(f'reading data from file: {input_file_str}')
-            if not input_file.is_file():
-                raise Exception('File not found!')
-            # Next - read the file data into a dictionary
-            if input_file.is_file():
-                with open(input_file_str, 'r', encoding='utf-8') as ifhan:
-                    input_data = json.load(ifhan)
-            else:
-                print(f'error: file [{input_file_str}] not found!')
-                sys.exit()
-    except Exception as ex:
-        print('something went wrong: %s', ex)
-        traceback.print_exc()
-        sys.exit()
-
-    # Finally - show a dialog with a treeview and the data
-    try:
+            input_data = read_file(args['file'])
+        # Finally - show a dialog with a treeview using "input_data" and "input_file_str"
         show_object(input_data, input_file_str)
     except Exception as ex:
-        print('exception: %s', ex)
-
-    print('TreeView: Exited.')
+        print('Error: %s' % ex)
+        if DEBUG_MODE:
+            traceback.print_exc()
+        sys.exit(1)

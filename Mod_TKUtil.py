@@ -23,8 +23,6 @@ import webbrowser
 
 from typing import Literal
 
-from dateutil.parser import parse as dateparse
-
 # NOTE padding for x and y are linked, but for now everything is default
 
 DEFAULT_FONT_NAME = 'Andale Mono'  # chosen because monospace
@@ -54,8 +52,7 @@ def sanitize_name(product_name, separator: str = '-'):
     new_product_name = product_name.strip().lower().replace('(', '').replace(')', '')
     new_product_name = new_product_name.replace('[', '').replace(']', '')
     new_product_name = new_product_name.replace('{', '').replace('}', '')
-    new_product_name = new_product_name.replace(
-        '/', '').replace('\\', '').replace('+', '')
+    new_product_name = new_product_name.replace('/', '').replace('\\', '').replace('+', '')
     new_product_name = new_product_name.replace(' ', separator)
     return new_product_name
 
@@ -63,8 +60,8 @@ def sanitize_name(product_name, separator: str = '-'):
 def list_to_dict(input_list: list):
     # turn a list into a dict, with index + 1 as keys
     newdict = {}
-    for i in range(0, len(input_list)):
-        newdict[i + 1] = input_list[i]
+    for (index, value) in enumerate(input_list):
+        newdict[index] = value
     return newdict
 
 # print a traceback
@@ -123,6 +120,7 @@ class TkWindow(tkinter.Tk):
 class TkWidget(tkinter.BaseWidget, tkinter.Grid):
     # this is the base class of our fancy little tk wrapper library
     #   adds explicit 1-indexed placement in parent grid, and unified default padding
+    # pylint: disable=super-init-not-called
     def __init__(self, parent, parent_col: int, parent_row: int,
                  sticky='', padding: int = DEFAULT_PADDING,
                  ):
@@ -222,37 +220,6 @@ class TkLabel(tkinter.Label, TkWidget):
             self.config(height=height)
 
 
-class TkURLLabel(tkinter.Label, TkWidget):
-    # just like a label but its blue
-    #   and when you click it, it tries to open the url in a browser
-    #   and when you hover over it, the cursor changes to a hand
-    def __init__(self, parent, parent_col: int, parent_row: int,
-                 url: str, wraplength: int = None,
-                 font: tuple = DEFAULT_FONT,
-                 anchor: Literal['nw', 'n', 'ne', 'w',
-                                 'center', 'e', 'sw', 's', 'se'] = 'center',
-                 justify: Literal['left', 'center', 'right'] = 'center',
-                 sticky='', padding: int = DEFAULT_PADDING,
-                 width: int = None, height: int = None):
-        if wraplength:
-            tkinter.Label.__init__(self, parent, text=url, anchor=anchor, wraplength=wraplength,
-                                   font=font, fg='blue', cursor='hand2', justify=justify)
-        else:
-            tkinter.Label.__init__(self, parent, text=url, anchor=anchor,
-                                   font=font, fg='blue', cursor='hand2', justify=justify)
-        TkWidget.__init__(self, parent, parent_col=parent_col,
-                          parent_row=parent_row, sticky=sticky, padding=padding)
-        self.bind('<Button-1>', lambda e: open_browser(url))
-        if 'label' in DEBUG_ELEMENTS:
-            border_color = random.choice(DEBUG_COLORS)
-            self.config(highlightthickness=1, highlightcolor=border_color,
-                        highlightbackground=border_color)
-        if width:
-            self.config(width=width)
-        if height:
-            self.config(height=height)
-
-
 class TkButton(tkinter.Button, TkWidget):
     # a basic button, supplemented to make assigning callbacks easier
     def __init__(self, parent, parent_col: int, parent_row: int,
@@ -280,267 +247,6 @@ class TkButton(tkinter.Button, TkWidget):
         self.config(command=callback)
 
 
-class TkProgressBar(tkinter.ttk.Progressbar, TkWidget):
-    # a basic horizontal progress bar
-    #   TODO this can be tweaked to support vertical too!
-    def __init__(self, parent, parent_col: int, parent_row: int,
-                 value: int,
-                 sticky='', padding: int = DEFAULT_PADDING):
-        self.frame_wrapper = TkFrame(
-            parent, parent_col=parent_col, parent_row=parent_row, cols=1, rows=1, sticky=sticky, padding=padding)
-        tkinter.ttk.Progressbar.__init__(
-            self, self.frame_wrapper, value=value, orient='horizontal')
-        TkWidget.__init__(self, self.frame_wrapper, parent_col=1,
-                          parent_row=1, sticky='nsew', padding=0)
-        if 'treeview' in DEBUG_ELEMENTS:
-            border_color = random.choice(DEBUG_COLORS)
-            self.frame_wrapper.config(
-                highlightthickness=1, highlightcolor=border_color, highlightbackground=border_color)
-
-
-class TkCheckbox(tkinter.Checkbutton, TkWidget):
-    # Checkbox, toggling a bool value
-    #   the Tk Checkbutton is very flexible, extra config is needed to make it behave like a basic boolean checkbox
-    def __init__(self, parent, parent_col: int, parent_row: int,
-                 text: str, value: bool = False,
-                 state: Literal['normal', 'disabled', 'readonly'] = 'normal',
-                 font: tuple = DEFAULT_FONT,
-                 anchor: Literal['nw', 'n', 'ne', 'w',
-                                 'center', 'e', 'sw', 's', 'se'] = 'center',
-                 justify: Literal['left', 'center', 'right'] = 'center',
-                 sticky='', padding: int = DEFAULT_PADDING,
-                 ):
-        self.data_variable = tkinter.BooleanVar(parent, value=value)
-        tkinter.Checkbutton.__init__(self, parent, onvalue=True, offvalue=False, text=text,
-                                     variable=self.data_variable, anchor=anchor, justify=justify, state=state, font=font)
-        TkWidget.__init__(self, parent, parent_col=parent_col,
-                          parent_row=parent_row, sticky=sticky, padding=padding)
-        if 'checkbox' in DEBUG_ELEMENTS:
-            border_color = random.choice(DEBUG_COLORS)
-            self.config(highlightthickness=1, highlightcolor=border_color,
-                        highlightbackground=border_color)
-
-    def on_change(self, callback: callable):
-        # add an onchange callback
-        self.config(command=callback)
-
-    def get_value(self):
-        return self.data_variable.get()
-
-    def set_value(self, value):
-        # set the value
-        self.data_variable.set(value)
-
-
-class TkSpacer(tkinter.Frame, TkWidget):
-    # put this inside a spacer row/column
-    #   exists mostly for visualization in debugging
-    def __init__(self, parent, parent_col: int, parent_row: int):
-        tkinter.Frame.__init__(self, parent)
-        TkWidget.__init__(self, parent, parent_col=parent_col,
-                          parent_row=parent_row, sticky='nsew')
-        if 'spacer' in DEBUG_ELEMENTS:
-            border_color = random.choice(DEBUG_COLORS)
-            self.config(highlightthickness=1, highlightcolor=border_color,
-                        highlightbackground=border_color)
-        self.rowconfigure(0, weight=1)
-        self.columnconfigure(0, weight=1)
-
-
-class TkSeparator(tkinter.ttk.Separator, TkWidget):
-    # a basic, horizontal or vertical line, used as a separator
-    def __init__(self, parent, parent_col: int, parent_row: int,
-                 orientation: Literal['horizontal', 'vertical'],
-                 sticky='', padding: int = DEFAULT_PADDING):
-        tkinter.ttk.Separator.__init__(self, parent, orient=orientation)
-        TkWidget.__init__(self, parent, parent_col=parent_col,
-                          parent_row=parent_row, sticky=sticky, padding=padding)
-
-
-class TkTableView(tkinter.ttk.Treeview, TkWidget):
-    # Supplement Tk Treeview to behave like a tableview, with methods for loading data
-    #   also wrapped in a TkFrame so that we can optionally add scrollbars
-    def __init__(self, parent, parent_col: int, parent_row: int,
-                 column_headings: list[str], column_widths: list[int], value: list = None,
-                 scrollbar_horizontal: bool = False, scrollbar_vertical: bool = False,
-                 sticky='', padding: int = DEFAULT_PADDING):
-        # need to wrap everything in a frame so we can add scrollbars
-        self.frame_wrapper = TkFrame(parent, parent_col=parent_col, parent_row=parent_row,
-                                     cols=2, rows=2, spacecol=1, spacerow=1, sticky=sticky, padding=padding)
-        tkinter.ttk.Treeview.__init__(self, self.frame_wrapper)
-
-        if scrollbar_vertical:
-            self.scrollbar_vertical = tkinter.Scrollbar(
-                self.frame_wrapper, orient='vertical', command=self.yview)
-            self.scrollbar_vertical.grid(column=1, row=0, sticky='ns')
-            self.config(yscrollcommand=self.scrollbar_vertical.set)
-
-        if scrollbar_horizontal:
-            self.scrollbar_horizontal = tkinter.Scrollbar(
-                self.frame_wrapper, orient='horizontal', command=self.xview)
-            self.scrollbar_horizontal.grid(column=0, row=1, sticky='ew')
-            self.config(xscrollcommand=self.scrollbar_horizontal.set)
-
-        TkWidget.__init__(self, self.frame_wrapper, parent_col=1,
-                          parent_row=1, sticky='nsew', padding=0)
-        # pack table and scrollbars into frame_wrapper
-
-        # border for frame_wrapper if debug
-        if 'table' in DEBUG_ELEMENTS:
-            border_color = random.choice(DEBUG_COLORS)
-            self.frame_wrapper.config(
-                highlightthickness=1, highlightcolor=border_color, highlightbackground=border_color)
-        self.column_headings = column_headings
-        self.column_ids = []
-        try:
-            for entry in self.column_headings:
-                # sanitize headings and use them as column ids
-                col_id = sanitize_name(entry, separator='_')
-                self.column_ids.append(col_id)
-            self.config(columns=self.column_ids)
-            # '#0' is the root object, because this is a "tree", and it occupies its own column
-            self.column('#0', width=0, stretch=False)
-            self.heading('#0', anchor='center', text='')
-            # iterate over column definitions
-            for col_num in range(0, len(self.column_ids)):
-                column_id = self.column_ids[col_num]
-                self.column(column_id, width=column_widths[col_num])
-                self.heading(column_id, anchor='center',
-                             text=self.column_headings[col_num], command=lambda _col=column_id: self.treeview_sort_column(_col, False))
-            if value is not None:
-                self.load_list(value)
-        except Exception as ex:
-            print('Error initializing TableView: %s' % ex)
-            print_traceback()
-
-    def get_wrapper(self):
-        # need to get wrapper to use it
-        return self.frame_wrapper
-
-    def clear_data(self):
-        # clear all existing entries
-        for item in self.get_children():  # delete all items in the treeview
-            try:
-                self.delete(item)
-            except Exception as ex:
-                print(
-                    'Warning: failed to delete an item in TkTableView.clear_data(): %s' % ex)
-                continue
-
-    def load_list(self, input_list: list, reverse_rows: bool = False):
-        # load a list of rows into this table
-        #   reverse_rows allows the top -> down ordering of the input data to be reversed,
-        #       so the bottom row of data is the top row of the table
-        try:
-            if reverse_rows:
-                list_in_order = input_list.copy()
-                list_in_order.reverse()
-            else:
-                list_in_order = input_list
-            # clear the table
-            self.clear_data()
-            # now repopulate it
-            for index, entry in enumerate(list_in_order):
-                self.insert('', index=index, values=entry)
-        except Exception as ex:
-            print('Error loading list into TableView: %s' % ex)
-            print_traceback()
-
-    def clear_selection(self):
-        # clear any selected rows
-        if len(self.selection()) > 0:
-            for i in self.selection():
-                self.selection_remove(i)
-
-    def get_row_from_id(self, row_identifier, use_headers=False):
-        # using result of .identify_row(event.y) or .selection(), return dict of data in that row
-        row_values = self.item(row_identifier)['values']
-        row_dict = {}
-        for i in range(0, (len(row_values))):
-            value = row_values[i]
-            if use_headers:
-                # use headers as keys
-                key = self.column_headings[i]
-            else:
-                # use the column_ids we generated from headers
-                key = self.column_ids[i]
-            row_dict[key] = value
-        return row_dict
-
-    def get_selection(self, use_headers=False):
-        # returns the contents of selected rows
-        #   each row is a dictionary, with column_id as key (sanitized header names)
-        #   if use_headers=True, then use header name as key
-        selection = self.selection()
-        sel_vals = []
-        for sel in selection:
-            row_dict = self.get_row_from_id(sel, use_headers=use_headers)
-            sel_vals.append(row_dict)
-        return sel_vals
-
-    def on_change(self, callback: callable):
-        # called when selection changes
-        self.bind('<ButtonRelease-1>', callback)
-
-    def on_right_click(self, callback: callable):
-        # called when right-click on item
-        self.bind('<Button-2>', callback)
-
-    def treeview_sort_column(self, col, reverse):
-        self.clear_selection()
-        data_list = [(self.set(k, col), k) for k in self.get_children('')]
-        # try to cast all values to int, if that works then all values are int
-        try:
-            data_list_ints = []
-            for (value, index) in data_list:
-                newvalue = int(value)
-                data_list_ints.append((newvalue, index))
-            all_ints = True
-        except Exception as ex:
-            # print('failed to cast to int: %s' % ex)
-            all_ints = False
-        if all_ints:
-            # print('looks like these are all ints')
-            data_list = data_list_ints
-        else:
-            # try to cast all values to float, if that works then all values are float
-            try:
-                data_list_floats = []
-                for (value, index) in data_list:
-                    newvalue = float(value)
-                    data_list_floats.append((newvalue, index))
-                all_floats = True
-            except Exception as ex:
-                # print('failed to cast to float: %s' % ex)
-                all_floats = False
-            if all_floats:
-                # print('looks like these are all floats')
-                data_list = data_list_floats
-            else:
-                # try to parse all values as date, if that works then all values are date
-                try:
-                    data_list_dates = []
-                    for (value, index) in data_list:
-                        newvalue = dateparse(value)
-                        data_list_dates.append((newvalue, index))
-                    all_dates = True
-                except Exception as ex:
-                    # print('failed to cast to date: %s' % ex)
-                    all_dates = False
-                if all_dates:
-                    # print('looks like these are all dates')
-                    data_list = data_list_dates
-                # else:
-                #     print('looks like these are all strings')
-        data_list.sort(reverse=reverse)
-        # rearrange items in sorted positions
-        for index, (_val, k) in enumerate(data_list):
-            self.move(k, '', index)
-        # reverse sort next time
-        self.heading(
-            col, command=lambda: self.treeview_sort_column(col, not reverse))
-
-
 class TkTreeView(tkinter.ttk.Treeview, TkWidget):
     # Supplement Tk Treeview with methods for loading data, expand all, collapse all
     #   display an arbitrary dictionary (of values that can convert to str)
@@ -564,10 +270,9 @@ class TkTreeView(tkinter.ttk.Treeview, TkWidget):
         column_headings = ['Key', 'Value', '']
         column_ids = ['#0', 'key', 'value']
         self.config(columns=['key', 'value'])  # column ids (other than '#0')
-        for col_num in range(0, len(column_ids)):
-            column_id = column_ids[col_num]
-            self.heading(column_id, anchor='w', text=column_headings[col_num])
-            self.column(column_id, width=column_widths[col_num])
+        for (index, col_id) in enumerate(column_ids):
+            self.heading(col_id, anchor='w', text=column_headings[index])
+            self.column(col_id, width=column_widths[index])
         if value is not None:
             self.load_dict(value)
 
@@ -686,178 +391,12 @@ class TkTreeView(tkinter.ttk.Treeview, TkWidget):
             self.item(item, open=False)
 
 
-class TkCombobox(tkinter.ttk.Combobox, TkWidget):
-    # combobox
-    def __init__(self, parent, parent_col: int, parent_row: int,
-                 state: str = 'readonly',
-                 font: tuple = DEFAULT_FONT, options: list[tuple[int, str]] = None,
-                 justify: Literal['left', 'center', 'right'] = 'center',
-                 sticky='', padding: int = DEFAULT_PADDING):
-        self.combobox_values = {}  # stores values, indexed by display string
-        self.combobox_textvariable = None
-        self.on_change_callback = None
-        # wrap in a frame so we can highlight for debugging
-        self.frame_wrapper = TkFrame(
-            parent, parent_col=parent_col, parent_row=parent_row, cols=1, rows=1, sticky=sticky, padding=padding)
-        tkinter.ttk.Combobox.__init__(
-            self, self.frame_wrapper, state=state, justify=justify, font=font)
-        TkWidget.__init__(self, self.frame_wrapper, parent_col=1,
-                          parent_row=1, sticky='nsew', padding=0)
-        self.bind('<<ComboboxSelected>>', self.combobox_changed)
-        if 'combobox' in DEBUG_ELEMENTS:
-            border_color = random.choice(DEBUG_COLORS)
-            self.frame_wrapper.config(
-                highlightthickness=1, highlightcolor=border_color, highlightbackground=border_color)
-        if options:
-            # if options provided, populate with first one selected
-            self.populate(options, 0)
-
-    def on_change(self, callback: callable):
-        # assign an on_change callback
-        self.on_change_callback = callback
-
-    def set_value(self, value: int):
-        # set the selected value
-        self.current(value)
-
-    def get_value(self):
-        # values of the combobox are the display string, so we need to translate that back to value
-        selected_item_display = self.get()
-        selected_item_value = self.combobox_values[selected_item_display]
-        return selected_item_value
-
-    def combobox_changed(self, _event):
-        # onchange callback
-        selected_item_value = self.get_value()
-        self.on_change_callback(selected_item_value)
-
-    def populate(self, options: list[tuple[int, str]], selected: int = 0):
-        # populate using list of tuples (value, display)
-        for (value, display) in options:
-            self.combobox_values[display] = value
-        values = list(self.combobox_values.keys())
-        self.combobox_textvariable = tkinter.StringVar()
-        self.config(textvariable=self.combobox_textvariable)
-        self.config(values=values)
-        self.current(selected)
-
-
-class TkTextEntry(tkinter.Entry, TkWidget):
-    # tricked out text entry widget
-    #   sensitive = shows * instead of what you type
-    def __init__(self, parent, parent_col: int, parent_row: int,
-                 text: str = '', state: Literal['normal', 'disabled', 'readonly'] = 'normal',
-                 sensitive: bool = False,
-                 font: tuple = DEFAULT_FONT,
-                 justify: Literal['left', 'center', 'right'] = 'center',
-                 sticky='', padding: int = DEFAULT_PADDING):
-        self.data_variable = tkinter.StringVar(parent, value=text)
-        tkinter.Entry.__init__(
-            self, parent, textvariable=self.data_variable, state=state, justify=justify, font=font)
-        TkWidget.__init__(self, parent, parent_col=parent_col,
-                          parent_row=parent_row, sticky=sticky, padding=padding)
-        if sensitive:
-            self.config(show='*')
-        if 'textentry' in DEBUG_ELEMENTS:
-            border_color = random.choice(DEBUG_COLORS)
-            self.config(highlightthickness=1, highlightcolor=border_color,
-                        highlightbackground=border_color)
-
-    def get_value(self):
-        # retrieve current value of the text field
-        value = self.data_variable.get()
-        return value
-
-    def set_value(self, value):
-        # set the value
-        self.data_variable.set(value)
-
-
-class TkBasicDialogText(TkWindow):
-    # create a basic dialog with some text and an ok button
-    #   provide url, and it will be below the text, blue and clickable
-    def __init__(self, title: str, text: str, button_text: str = 'Close', url: str = None,
-                 resizable: bool = False, width: int = 200, height: int = 200, minwidth: int = 200, minheight: int = 200):
-        super().__init__(title=title, width=width, height=height,
-                         minwidth=minwidth, minheight=minheight, resizable=resizable)
-        root_frame = TkFrame(self, parent_col=1, parent_row=1,
-                             cols=1, rows=2, spacerow=1, sticky='nsew')
-        TkLabel(root_frame, parent_col=1, parent_row=1, text=text, anchor='center',
-                sticky='nsew', wraplength=(width - (DEFAULT_PADDING * 8)), justify='left')
-        if url:
-            TkURLLabel(root_frame, parent_col=1, parent_row=2, url=url)
-        button_ok = TkButton(root_frame, parent_col=1,
-                             parent_row=3, text=button_text, sticky='ew')
-        button_ok.config(command=self.close)
-
-
-class TkRadioButtonGroup(tkinter.Frame, TkWidget):
-    # a collection of radiobuttons
-    #   options is a list of tuples (value, display)
-    def __init__(self, parent, parent_col: int, parent_row: int, options: list[tuple[int, str]], orientation: Literal['horizontal', 'vertical'] = 'horizontal'):
-        tkinter.Frame.__init__(self, parent)
-        TkWidget.__init__(self, parent, parent_col=parent_col,
-                          parent_row=parent_row, sticky='nsew')
-        if 'radiobutton' in DEBUG_ELEMENTS:
-            border_color = random.choice(DEBUG_COLORS)
-            self.config(highlightthickness=1, highlightcolor=border_color,
-                        highlightbackground=border_color)
-        self.rowconfigure(0, weight=1)
-        self.columnconfigure(0, weight=1)
-        # container frame for radiobuttons
-        button_frame = tkinter.Frame(self)
-        button_frame.grid(column=0, row=0)
-        self.radiobuttons = []  # track all our radiobuttons here
-        self.variable = tkinter.IntVar()
-        self.callback = None
-        index = 0
-        if orientation == 'horizontal':
-            button_frame.rowconfigure(0, weight=1)
-        else:
-            button_frame.columnconfigure(0, weight=1)
-        # create buttons
-        for (value, display) in options:
-            radio_button = tkinter.Radiobutton(
-                button_frame, text=display, value=value, variable=self.variable, command=self._on_change)
-            self.radiobuttons.append(radio_button)
-            if orientation == 'horizontal':
-                button_frame.columnconfigure(index, weight=1)
-                radio_button.grid(column=index, row=0)
-            else:
-                button_frame.rowconfigure(index, weight=1)
-                radio_button.grid(column=0, row=index)
-            index += 1
-
-    def get_value(self):
-        return self.variable.get()
-
-    def set_value(self, value: int):
-        self.variable.set(value)
-
-    def on_click(self, callback: callable):
-        self.callback = callback
-
-    def _on_change(self, _event=None):
-        if self.callback:
-            self.callback(self.get_value())
-
-
 def show_object(this_object, object_name, show_units=True, sort_keys=False):
     # show a dialog with treeview populated by this object, used for debugging
     #   TODO this is blocking, so causes execution to stop wherever this was called
     new_obj = {
         'data': 'Failed to decode object'
     }
-    # try:
-    #     # try to get the original name of the var we passed as this_object
-    #     stack = traceback.extract_stack()
-    #     filename, lineno, function_name, code = stack[-2]
-    #     object_name = re.compile(r'\((.*?)\).*$').search(code).groups()[0]
-    #     object_name = object_name.split(',')[0]
-    #     object_type = str(type(this_object).__name__)
-    # except Exception:
-    #     object_name = 'unknown'
-    #     object_type = 'unknown'
     try:
         # transform any list into dict because thats what growing trees need!
         if isinstance(this_object, list):
