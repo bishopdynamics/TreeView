@@ -33,6 +33,8 @@ pyinstaller ${APP_NAME}.spec || {
   bail
 }
 
+rm -r build || bail
+
 # all done, deactivate the venv
 deactivate
 echo "Success, resulting app: \"dist/${APP_NAME}.app"
