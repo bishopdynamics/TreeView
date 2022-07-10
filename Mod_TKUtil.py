@@ -23,6 +23,8 @@ import webbrowser
 
 from typing import Literal
 
+# from Mod_Util import print_obj
+
 # NOTE padding for x and y are linked, but for now everything is default
 
 DEFAULT_FONT_NAME = 'Andale Mono'  # chosen because monospace
@@ -283,47 +285,54 @@ class TkTreeView(tkinter.ttk.Treeview, TkWidget):
         #   if data is a set, we turn it into a list
         #   if data is a list, we recursively process its entries and add nodes for them
         #   if data is a multiline string, we recursively process each line as if they were entries in a list
-        #   NOTE: this method was lass blessed as "perfect" on Apr 27, 2022, 2:06pm PST. dont touch it
+        #   NOTE: this method was lass blessed as "perfect" on July 10, 2022, 1:35pm PST. do not touch it
         if isinstance(node_data, type(set())):
             # turn set into list
             node_data = sorted(node_data)
         if isinstance(node_data, dict) and self.sort_keys:
             # sort dictionary keys
             node_data = dict(sorted(node_data.items()))
+        # print(f'node data type: {type(node_data)}')
+        # print_obj(node_data)
+        index = 0  # index counter incase node_data is a list
         for key in node_data:
+            # print(f'traversing key: {key}')
+            # this way we can process node_data as a dict or a list
+            try:
+                # is a dict?
+                value = node_data[key]
+            except TypeError:
+                # must be a list
+                value = key
+                key = str(index)
             uid = str(uuid.uuid4())
             self.tree_nodes.append(uid)
-            # print('traversing key: %s' % key)
-            value = node_data[key]
             if isinstance(value, type(set())):
                 # turn any values of type set into list
                 value = sorted(value)
             if isinstance(value, dict):
                 if self.show_units:
-                    key_name = '%s [dict] (%d keys)' % (key, len(value.keys()))
+                    key_name = f'{key} [dict] ({len(value.keys())} keys)'
                 else:
-                    key_name = '%s (%d)' % (key, len(value.keys()))
+                    key_name = f'{key} ({len(value.keys())})'
                 self.insert(parent, 'end', uid, text=key_name)
                 self.insert_tree_node(value, uid)
             elif isinstance(value, list):
                 if len(value) == 0:
                     # turn empty lists into (empty)
                     if self.show_units:
-                        self.insert(parent, 'end', uid, text=key +
-                                    ' [list] (0 items):', values=['(empty)'])
+                        self.insert(parent, 'end', uid, text=f'{key} [list] (0 items):', values=['(empty)'])
                     else:
-                        self.insert(parent, 'end', uid, text=key +
-                                    ' (0):', values=['(empty)'])
+                        self.insert(parent, 'end', uid, text=f'{key} (0):', values=['(empty)'])
                 else:
                     list_as_dict = list_to_dict(value)
                     if self.show_units:
-                        self.insert(parent, 'end', uid, text=key +
-                                    ' [list] (%d items):' % len(list_as_dict))
+                        self.insert(parent, 'end', uid, text=f'{key} [list] ({len(list_as_dict)} items):')
                     else:
-                        self.insert(parent, 'end', uid, text=key +
-                                    ' (%d):' % len(list_as_dict))
+                        self.insert(parent, 'end', uid, text=f'{key} ({len(list_as_dict)}):')
                     self.insert_tree_node(list_as_dict, uid)
             else:
+                # print(f'value of unknown type: {type(value)}')
                 try:
                     if value is None:
                         # if value is empty, replace it with string 'None' to give something in the UI
@@ -336,24 +345,20 @@ class TkTreeView(tkinter.ttk.Treeview, TkWidget):
                                 value_as_lines = value.splitlines()
                                 # we ended up with a list of lines, lets treat it like a list
                                 if self.show_units:
-                                    self.insert(
-                                        parent, 'end', uid, text=key + ' [text] (%d lines): ' % len(value_as_lines))
+                                    self.insert(parent, 'end', uid, text=f'{key} [text] ({len(value_as_lines)} lines): ')
                                 else:
-                                    self.insert(
-                                        parent, 'end', uid, text=key + ' (%d): ' % len(value_as_lines))
-                                self.insert_tree_node(
-                                    list_to_dict(value_as_lines), uid)
+                                    self.insert(parent, 'end', uid, text=f'{key} ({len(value_as_lines)}): ')
+                                self.insert_tree_node(list_to_dict(value_as_lines), uid)
                                 continue  # otherwise tree.insert below will create a duplicate entry
                         else:
                             value = str(value)
                     # hopefully now we have a string, lets add it
                     # below, remember values needs to be an array in this context
-                    self.insert(parent, 'end', uid, text=key, values=[value])
+                    self.insert(parent, 'end', uid, text=f'{key}', values=[value])
                 except Exception as ex:
-                    print('failed to insert value for key: %s, error: %s' %
-                          (str(key), ex))
+                    print(f'failed to insert value for key: {key}, error: {ex}')
                     continue
-
+            index += 1  # increment our index counter
     def load_dict(self, input_dict: dict):
         # load a dictionary into the treeview
         try:

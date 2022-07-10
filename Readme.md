@@ -1,8 +1,21 @@
 # TreeView
 
-A simple utility for macOS to load json data from stdin or a file and render a nice interactive treeview to explore it.
-
 [MIT license](License.txt)
+
+A simple utility for macOS to load json/yaml data from stdin or a file and render a nice interactive treeview to explore it.
+
+When given data from stdin, it will try to parse as json, and then yaml. 
+
+If you pick a file, or provide a file as argument, other formats can be decoded:
+* json (`.json`)
+* yaml (`.yaml`, `.yml`)
+* csv (`.csv`)
+* tsv (`.tsv`)
+* excel (`.xls`, `.xslx`)
+* openoffice sheets (`.ods`)
+* sqlite3 (`.db`, `.sqlite`, `.sqlite3`)
+
+Table-like data files are translated through `pandas`. For a more table-oriented tool, check out [TableView](https://github.com/bishopdynamics/TableView).
 
 ![screenshot](screenshot.png)
 
@@ -17,7 +30,7 @@ Drag `TreeView.app` into your Applications folder.
 
 ## Usage
 
-Open the app, and it will prompt you to select a file ending in `.json`
+Open the app, and it will prompt you to select a file ending in `.json`, `.yaml`, or `.yml`
 
 There are three ways to use it from terminal:
 * pipe data to stdin: `cat sampledata.json | /Applications/TreeView.app/Contents/MacOS/TreeView`
@@ -32,9 +45,11 @@ ln -s /Applications/TreeView.app/Contents/MacOS/TreeView ~/bin/treeview
 
 # direct
 treeview sampledata.json
+treeview sampledata.yaml
 
 # stdin
 cat sampledata.json |treeview
+cat sampledata.yaml |treeview
 
 # stdin alternate syntax
 treeview < sampledata.json

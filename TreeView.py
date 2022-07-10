@@ -12,13 +12,17 @@ import select
 import sys
 import tkinter
 import tkinter.filedialog
+import sqlite3
 
 from sys import stdin
+
+import yaml
+import pandas
 
 from Mod_TKUtil import show_object
 
 # print some extra information if True
-DEBUG_MODE = False
+DEBUG_MODE = True
 
 
 
@@ -38,21 +42,101 @@ def check_stdin():
 
 def read_file(filepath):
     # read a file and return its data
+    #   checks file extension to assign a decoder
     print(f'Reading data from file: {filepath}')
     filepath_absolute = pathlib.Path(filepath).resolve()
     file_data = None
     if filepath_absolute.is_file():
-        # TODO detect json lines, and load as list of dicts
-        with open(filepath_absolute, 'r', encoding='utf-8') as ifhan:
-            file_data = json.load(ifhan)
+        if filepath_absolute.suffix == '.json':
+            # tryloading it as json
+            # TODO detect json lines, and load as list of dicts
+            if DEBUG_MODE:
+                print('loading json file')
+            with open(filepath_absolute, 'r', encoding='utf-8') as ifhan:
+                file_data = json.load(ifhan)
+        elif filepath_absolute.suffix in ['.yml', '.yaml']:
+            # try loading it as yaml
+            if DEBUG_MODE:
+                print('loading yaml file')
+            with open(filepath_absolute, 'r', encoding='utf-8') as ifhan:
+                # NOTE yaml.load is deprecated. always use safe_load
+                file_data = yaml.safe_load(ifhan)
+        elif filepath_absolute.suffix in ['.csv', '.tsv', '.xlsx', '.xls', '.ods', '.db', '.sqlite', '.sqlite3']:
+            # lets try decoding this with pandas
+            # first try to read into dataframe
+            dataframes = []  # store dataframes
+            dataframe_names = []  # store dataframe names
+            if filepath_absolute.suffix == '.csv':
+                dataframes.append(pandas.read_csv(filepath_absolute))
+                dataframe_names.append('default')
+            elif filepath_absolute.suffix == '.tsv':
+                dataframes.append(pandas.read_csv(filepath_absolute, sep='\t'))
+                dataframe_names.append('default')
+            elif filepath_absolute.suffix in ['.xlsx', '.xls', '.ods']:
+                # old xls, new xlsx, and openoffice ods formats
+                xlfile = pandas.ExcelFile(filepath_absolute)
+                # load all sheets
+                if DEBUG_MODE:
+                    print(f'Reading data from {len(xlfile.sheet_names)} sheets')
+                for this_sheet in xlfile.sheet_names:
+                    dataframes.append(pandas.read_excel(filepath_absolute, sheet_name=this_sheet))
+                    dataframe_names.append(this_sheet)
+            elif filepath_absolute.suffix in ['.db', '.sqlite', '.sqlite3']:
+                # try to read sqlite db
+                if DEBUG_MODE:
+                    print(f'Treating as sqlite3 database: {filepath_absolute.suffix}')
+                db_conn = sqlite3.connect(filepath_absolute)
+                cursor = db_conn.cursor()
+                cursor.execute("SELECT name FROM sqlite_master WHERE type='table';")
+                tables_raw = cursor.fetchall()
+                tables_list = []
+                for entry in tables_raw:
+                    tables_list.append(entry[0])
+                # load all tables
+                if DEBUG_MODE:
+                    print(f'Reading data from {len(tables_list)} tables')
+                for this_table in tables_list:
+                    dataframes.append(pandas.read_sql_query(f"SELECT * FROM {this_table};", db_conn))
+                    dataframe_names.append(this_table)
+                db_conn.close()
+            # now convert dataframe into a vanilla dictionary
+            file_data = {}
+            for (index, df_name) in enumerate(dataframe_names):
+                # turn into json first, which takes care of any serialization issues
+                frame_json = dataframes[index].to_json(orient='records')
+                file_data[df_name] = json.loads(frame_json)
+            # print(json.dumps(file_data, indent=4))
+        else:
+            raise Exception(f'Unsupported file extension: {filepath_absolute.suffix}')
     else:
         raise FileNotFoundError
     return file_data
 
+def read_data(data):
+    # read the given data and return a tuple: (object, description)
+    #   Tries to parse as json, then yaml
+    try:
+        data_obj = json.loads(data)
+        data_str = '(from stdin, json)'
+        if DEBUG_MODE:
+            print('successfully parsed data as json')
+    except ValueError:
+        if DEBUG_MODE:
+            print('failed to parse data as json, trying yaml')
+        try:
+            data_obj = yaml.safe_load(data)
+            data_str = '(from stdin, yaml)'
+            if DEBUG_MODE:
+                print('successfully parsed data as yaml')
+        except ValueError:
+            data_obj = None
+            data_str = None
+    return (data_obj, data_str)
+
 if __name__ == '__main__':
     # parse args
     parser = argparse.ArgumentParser(description='TreeView - A simple utility for macOS to load json data from stdin or a file and render a nice interactive treeview to explore it')
-    parser.add_argument('file', nargs='?', help='file-with-data.json')
+    parser.add_argument('file', nargs='?', help='file-with-data.{json|yml|yaml}')
     try:
         input_data = None
         input_file_str = None
@@ -63,15 +147,14 @@ if __name__ == '__main__':
             # no file argument, check stdin
             data_from_stdin = check_stdin()
             if data_from_stdin:
-                input_data = json.loads(data_from_stdin)
-                input_file_str = '(from stdin)'
+                (input_data, input_file_str) = read_data(data_from_stdin)
                 print('Loaded data from stdin')
         # if we still dont have input_data:
         if not args['file'] and not input_data:
             # no data in stdin and no file
             # if no argument given, and no stdin, then lets try a popup dialog to pick a file
             print('no stdin or filename, showing filedialog')
-            input_file_str = tkinter.filedialog.askopenfilename(title='Select data-file.json', filetypes=(("JSON files", "*.json"),))
+            input_file_str = tkinter.filedialog.askopenfilename(title='Select a datafile (json/yaml)', filetypes=(("JSON files", "*.json"),("YAML files", "*.yaml"),("YML files", "*.yml")))
             if input_file_str:
                 # user picked a file
                 input_data = read_file(input_file_str)
@@ -80,8 +163,7 @@ if __name__ == '__main__':
                 data_from_stdin = check_stdin()
                 if data_from_stdin:
                     # we NOW have data at stdin, lets try to load it
-                    input_data = json.loads(data_from_stdin)
-                    input_file_str = '(from stdin)'
+                    (input_data, input_file_str) = read_data(data_from_stdin)
                     print('No data file selected, but found late data on stdin')
                 else:
                     # no file selected (must have hit Cancel), and nothing from stdin

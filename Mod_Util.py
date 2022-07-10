@@ -82,8 +82,8 @@ def print_traceback():
 def list_to_dict(input_list: list):
     # turn a list into a dict, with index s key
     newdict = {}
-    for i in range(0, len(input_list)):
-        newdict[i] = input_list[i]
+    for (i, value) in enumerate(input_list):
+        newdict[i] = value
     return newdict
 
 # transform the product_name into what is used for g2 track product urls
@@ -100,13 +100,3 @@ def product_name_to_urlname(product_name, separator: str = '-'):
         '/', '').replace('\\', '').replace('+', '')
     new_product_name = new_product_name.replace(' ', separator)
     return new_product_name
-
-
-# print a traceback for debugging
-def print_traceback():
-    print(traceback.format_exc())
-
-
-# open a new browser tab with the given url
-def open_browser(url: str):
-    webbrowser.open_new_tab(url)
