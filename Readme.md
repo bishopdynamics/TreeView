@@ -1,6 +1,6 @@
 # TreeView
 
-[MIT license](License.txt)
+[![License: GPL v3](https://img.shields.io/badge/License-GPL%20v3-blue.svg)](License.txt)
 
 A simple utility for macOS to load json/yaml data from stdin or a file and render a nice interactive treeview to explore it.
 
