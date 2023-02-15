@@ -55,7 +55,12 @@ $PY_CMD -m virtualenv "$VENV_NAME" || {
 }
 
 # now activate the venv so we can install stuff inside it
-source "${VENV_NAME}/bin/activate" || bail
+if [ "$(uname -s)" == "Darwin" ] || [ "$(uname -s)" == "Linux" ]; then
+  source "${VENV_NAME}/bin/activate" || bail
+else
+  # assume Windows
+  source "${VENV_NAME}/Scripts/activate" || bail
+fi
 
 # always upgrade to latest pip first
 announce "upgrading pip"

@@ -25,7 +25,13 @@ fi
 
 echo "activating virtualenv..."
 # we need modules in the venv
-source "${VENV_NAME}/bin/activate" || bail
+# now activate the venv so we can install stuff inside it
+if [ "$(uname -s)" == "Darwin" ] || [ "$(uname -s)" == "Linux" ]; then
+  source "${VENV_NAME}/bin/activate" || bail
+else
+  # assume Windows
+  source "${VENV_NAME}/Scripts/activate" || bail
+fi
 
 echo "running script..."
 $PY_CMD TreeView.py "$@" || {
