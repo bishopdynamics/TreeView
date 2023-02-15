@@ -1,6 +1,7 @@
 PyInstaller
-pyyaml
+pyyaml  # read yaml
 pandas  # read many formats into dataframe
 openpyxl    # read excel formats
 odfpy  # read openoffice formats
-xlrd  # read old excel files
+xlrd  # read old excel format
+xmltodict  # read xml
