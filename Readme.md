@@ -14,6 +14,7 @@ If you pick a file, or provide a file as argument, other formats can be decoded:
 * excel (`.xls`, `.xslx`)
 * openoffice sheets (`.ods`)
 * sqlite3 (`.db`, `.sqlite`, `.sqlite3`)
+* xml (`.xml`)
 
 Table-like data files are translated through `pandas`. For a more table-oriented tool, check out [TableView](https://github.com/bishopdynamics/TableView).
 
@@ -77,3 +78,8 @@ For testing, you can build & run it all at once with `./run.sh sampledata.json`
 ## Linux and other Unix-like systems
 
 I only tested this on macOS, but this is all really basic python3 with tkinter, built into a macOS app using pyinstaller. It should be trivial to tweak it to work on any other system, and might already work out of the box.
+
+## Windows
+
+The build scripts are setup to work on Windows as well, but you need to use Git Bash to run them. 
+Use on Windows has not been extensively tested, but should work fine.

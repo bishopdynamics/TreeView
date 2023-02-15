@@ -1,3 +1,4 @@
+#!/bin/bash
 # test as python script, without building the app
 
 # Created 2022 by James Bishop (james@bishopdynamics.com)
@@ -10,6 +11,13 @@ function bail() {
 
 VENV_NAME="venv"
 
+if [ "$(uname -s)" == "Darwin" ] || [ "$(uname -s)" == "Linux" ]; then
+  PY_CMD='python3'
+else
+  # assume Windows
+  PY_CMD='python'
+fi
+
 # create venv if missing
 if [ ! -d "$VENV_NAME" ]; then
   ./setup-venv.sh || bail
@@ -20,7 +28,7 @@ echo "activating virtualenv..."
 source "${VENV_NAME}/bin/activate" || bail
 
 echo "running script..."
-python TreeView.py "$@" || {
+$PY_CMD TreeView.py "$@" || {
   deactivate
   bail
 }

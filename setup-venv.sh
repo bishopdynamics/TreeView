@@ -4,7 +4,13 @@
 # Created 2022 by James Bishop (james@bishopdynamics.com)
 
 VENV_NAME='venv'
-PY_CMD='python3'
+
+if [ "$(uname -s)" == "Darwin" ] || [ "$(uname -s)" == "Linux" ]; then
+  PY_CMD='python3'
+else
+  # assume Windows
+  PY_CMD='python'
+fi
 
 function bail() {
 	echo "An unexpected error occurred"

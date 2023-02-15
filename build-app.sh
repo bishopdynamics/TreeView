@@ -38,15 +38,27 @@ rm -r build || bail
 # zip up the app for release
 ZIP_FILE_NAME="${APP_NAME}_${GIT_COMMIT}.zip"
 echo "Creating archive: ${ZIP_FILE_NAME}"
-pushd 'dist' || bail
-# this command is exactly the same as when you right-click and Compress in the UI
-#   https://superuser.com/questions/505034/compress-files-from-os-x-terminal
-ditto -c -k --sequesterRsrc --keepParent ${APP_NAME}.app "${ZIP_FILE_NAME}" || {
-  echo "failed to compress app using \"ditto\" command"
-  bail
-}
-popd || bail
+
+if [ "$(uname -s)" == "Darwin" ]; then
+  # on macos, we must properly zip the resulting app in order to distribute it
+  pushd 'dist' || bail
+  # this command is exactly the same as when you right-click and Compress in the UI
+  #   https://superuser.com/questions/505034/compress-files-from-os-x-terminal
+  ditto -c -k --sequesterRsrc --keepParent ${APP_NAME}.app "${ZIP_FILE_NAME}" || {
+    echo "failed to compress app using \"ditto\" command"
+    bail
+  }
+  popd || bail
+fi
 
 # all done, deactivate the venv
 deactivate
-echo "Success, resulting app: \"dist/${APP_NAME}.app"
+
+if [ "$(uname -s)" == "Darwin" ]; then
+  echo "Success, resulting app: \"dist/${APP_NAME}.app"
+elif [ "$(uname -s)" == "Linux" ]; then
+  echo "Success, resulting binary: \"dist/${APP_NAME}"
+else
+  # assume Windows
+  echo "Success, resulting executable: \"dist/${APP_NAME}.exe"
+fi
