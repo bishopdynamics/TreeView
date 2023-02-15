@@ -18,6 +18,7 @@ from sys import stdin
 
 import yaml
 import pandas
+import xmltodict
 
 from Mod_TKUtil import show_object
 
@@ -30,14 +31,18 @@ def check_stdin():
     """ check stdin for data, return it or None
     """
     data = None
-    has_data = select.select([sys.stdin, ], [], [], 0.0)[0]  # check if any data in stdin
-    if has_data:
-        # we have data at stdin, lets see if its empty
-        data = ''
-        for line in stdin:
-            data += line
-        if data.strip() == '':
-            data = None
+    try:
+        has_data = select.select([sys.stdin, ], [], [], 0.0)[0]  # check if any data in stdin
+        if has_data:
+            # we have data at stdin, lets see if its empty
+            data = ''
+            for line in stdin:
+                data += line
+            if data.strip() == '':
+                data = None
+    except OSError:
+        # on Windows, lack of stdin data results in an OSError
+        data = None
     return data
 
 def read_file(filepath):
@@ -61,6 +66,13 @@ def read_file(filepath):
             with open(filepath_absolute, 'r', encoding='utf-8') as ifhan:
                 # NOTE yaml.load is deprecated. always use safe_load
                 file_data = yaml.safe_load(ifhan)
+        elif filepath_absolute.suffix == '.xml' :
+            # try loading it as xml
+            if DEBUG_MODE:
+                print('loading xml file')
+            with open(filepath_absolute, 'r', encoding='utf-8') as ifhan:
+                file_content = ifhan.read()
+            file_data = xmltodict.parse(file_content)
         elif filepath_absolute.suffix in ['.csv', '.tsv', '.xlsx', '.xls', '.ods', '.db', '.sqlite', '.sqlite3']:
             # lets try decoding this with pandas
             # first try to read into dataframe
