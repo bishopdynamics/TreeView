@@ -33,11 +33,19 @@ GIT_COMMIT=$(git rev-parse --short HEAD)
 echo "$GIT_COMMIT" > commit_id
 
 # using the .spec file, build a macos app out of our project
-# TODO what is the line to generate the spec in the first place?
-pyinstaller ${APP_NAME}.spec || {
-  deactivate
-  bail
-}
+if [ "$(uname -s)" == "Darwin" ]; then
+  # do not use onefile for macos, since it builds an app
+  pyinstaller ${APP_NAME}.macos.spec || {
+    deactivate
+    bail
+  }
+else
+  # use onefile option for Linux and Windows
+  pyinstaller ${APP_NAME}.spec || {
+    deactivate
+    bail
+  }
+fi
 
 rm -r build || bail
 
